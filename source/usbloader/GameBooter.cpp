@@ -61,6 +61,7 @@
 #include "xml/GameTDB.hpp"
 #include "usbloader/sdhc.h"
 #include "wad/nandtitle.h"
+#include "usbloader/GameList.h"
 
 /* GCC 11 false positives */
 #if __GNUC__ > 10
@@ -288,6 +289,16 @@ int GameBooter::BootGame(struct discHdr *gameHdr)
 
 	struct discHdr gameHeader;
 	memcpy(&gameHeader, gameHdr, sizeof(struct discHdr));
+
+	// --- Begin: Patch for virtual duplicate games ---
+    std::string selectedID((const char*)gameHeader.id, 6);
+    std::string realID = selectedID;
+    if (DuplicateIDMap.find(selectedID) != DuplicateIDMap.end()) {
+        // Use the original ID for file access
+        realID = DuplicateIDMap[selectedID];
+        memcpy(gameHeader.id, realID.c_str(), 6); // Use realID for file access below
+    }
+    // --- End: Patch for virtual duplicate games ---
 
 	gprintf("Boot Game: %s (%.6s)\n", gameHeader.title, gameHeader.id);
 
@@ -613,6 +624,12 @@ int GameBooter::BootGame(struct discHdr *gameHdr)
 	//! Now we can free up the memory used by the game/channel lists
 	gameList.clear();
 	Channels::DestroyInstance();
+
+	// --- Begin: Restore selected (possibly duplicated) ID for in-memory patching ---
+    if (DuplicateIDMap.find(selectedID) != DuplicateIDMap.end()) {
+        memcpy(gameHeader.id, selectedID.c_str(), 6); // Patch memory with the selected (virtual) ID
+    }
+    // --- End: Restore selected (possibly duplicated) ID for in-memory patching ---
 
 	//! Load main.dol or alternative dol into memory, start the game apploader and get game entrypoint
 	if (gameHeader.tid == 0)

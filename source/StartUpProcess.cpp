@@ -28,6 +28,7 @@
 #include "gitver.h"
 #include "usbloader/sdhc.h"
 #include "settings/meta.h"
+#include "usbloader/GameList.h"
 
 extern bool isWiiVC; // in sys.cpp
 extern u8 sdhc_mode_sd;
@@ -336,6 +337,7 @@ int StartUpProcess::Execute(bool quickGameBoot)
 
 	SetTextf("Loading config files\n");
 	gprintf("\tLoading config...%s\n", Settings.Load() ? "done" : "failed");
+	gprintf("\tLoading duplicate ID map...%s\n", LoadDuplicateIDMap() ? "done" : "failed");
 	gprintf("\tLoading language...%s\n", Settings.LoadLanguage(Settings.language_path, CONSOLE_DEFAULT) ? "done" : "failed");
 	gprintf("\tLoading game settings...%s\n", GameSettings.Load(Settings.ConfigPath) ? "done" : "failed");
 	gprintf("\tLoading game statistics...%s\n", GameStatistics.Load(Settings.ConfigPath) ? "done" : "failed");

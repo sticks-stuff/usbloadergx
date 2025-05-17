@@ -40,6 +40,11 @@
 #include "Channels/channels.h"
 #include "cache/cache.hpp"
 
+#include <map>
+#include <fstream>
+
+std::map<std::string, std::string> DuplicateIDMap;
+
 enum
 {
 	DISABLED,
@@ -480,4 +485,57 @@ bool GameList::PlayersSortCallback(const struct discHdr *a, const struct discHdr
 		return NameSortCallback(a, b);
 
 	return (count1 > count2);
+}
+
+void GameList::DuplicateGame(const struct discHdr *originalGame, const char *newGameID)
+{
+    if (!originalGame || !newGameID || strlen(newGameID) != 6)
+        return;
+
+    struct discHdr newGame = *originalGame;
+    memcpy(newGame.id, newGameID, 6);
+
+    FullGameList.push_back(newGame);
+    GamePartitionList.push_back(GamePartitionList[GetPartitionNumber(originalGame->id)]);
+
+    // Track mapping: new ID -> original ID
+    DuplicateIDMap[std::string(newGameID, 6)] = std::string((const char*)originalGame->id, 6);
+
+    SaveGameHeaderCache(FullGameList, GamePartitionList);
+    FilterList();
+
+	SaveDuplicateIDMap();
+}
+
+// Call this after modifying DuplicateIDMap
+void SaveDuplicateIDMap(const char *configPath) {
+    char path[300];
+    if (configPath)
+        snprintf(path, sizeof(path), "%sduplicate_ids.cfg", configPath);
+    else
+        snprintf(path, sizeof(path), "%sduplicate_ids.cfg", Settings.ConfigPath);
+
+    std::ofstream out(path);
+    for (const auto& pair : DuplicateIDMap) {
+        out << pair.first << " " << pair.second << "\n";
+    }
+}
+
+// Call this on startup
+bool LoadDuplicateIDMap(const char *configPath) {
+    char path[300];
+    if (configPath)
+        snprintf(path, sizeof(path), "%sduplicate_ids.cfg", configPath);
+    else
+        snprintf(path, sizeof(path), "%sduplicate_ids.cfg", Settings.ConfigPath);
+
+    DuplicateIDMap.clear();
+    std::ifstream in(path);
+    if (!in.is_open())
+        return false;
+    std::string dup, orig;
+    while (in >> dup >> orig) {
+        DuplicateIDMap[dup] = orig;
+    }
+    return true;
 }
