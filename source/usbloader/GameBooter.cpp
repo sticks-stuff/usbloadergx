@@ -290,15 +290,17 @@ int GameBooter::BootGame(struct discHdr *gameHdr)
 	struct discHdr gameHeader;
 	memcpy(&gameHeader, gameHdr, sizeof(struct discHdr));
 
-	// --- Begin: Patch for virtual duplicate games ---
-    std::string selectedID((const char*)gameHeader.id, 6);
-    std::string realID = selectedID;
-    if (DuplicateIDMap.find(selectedID) != DuplicateIDMap.end()) {
-        // Use the original ID for file access
-        realID = DuplicateIDMap[selectedID];
-        memcpy(gameHeader.id, realID.c_str(), 6); // Use realID for file access below
+    // --- Begin Duplicate ID Handling ---
+    std::string duplicateID((char*)gameHeader.id, 6);
+    std::string originalID;
+    bool isDuplicate = false;
+    if (DuplicateIDMap.count(duplicateID)) {
+        originalID = DuplicateIDMap[duplicateID];
+        isDuplicate = true;
+        // Use original ID for disc access/booting
+        memcpy(gameHeader.id, originalID.c_str(), 6);
     }
-    // --- End: Patch for virtual duplicate games ---
+    // --- End Duplicate ID Handling ---
 
 	gprintf("Boot Game: %s (%.6s)\n", gameHeader.title, gameHeader.id);
 
@@ -548,8 +550,10 @@ int GameBooter::BootGame(struct discHdr *gameHdr)
 	load_wip_code(gameHeader.id);
 
 	//! Load Ocarina codes
-	if (ocarinaChoice)
-		ocarina_load_code(Settings.Cheatcodespath, gameHeader.id);
+	if (ocarinaChoice) {
+		u8 *cheatID = isDuplicate ? (u8*)duplicateID.c_str() : gameHeader.id;
+		ocarina_load_code(Settings.Cheatcodespath, cheatID);
+	}
 
 	//! Disable private server for games that still have official servers.
 	if (memcmp(gameHeader.id, "SC7", 3) == 0 || memcmp(gameHeader.id, "RJA", 3) == 0 ||
@@ -624,13 +628,7 @@ int GameBooter::BootGame(struct discHdr *gameHdr)
 	//! Now we can free up the memory used by the game/channel lists
 	gameList.clear();
 	Channels::DestroyInstance();
-
-	// --- Begin: Restore selected (possibly duplicated) ID for in-memory patching ---
-    if (DuplicateIDMap.find(selectedID) != DuplicateIDMap.end()) {
-        memcpy(gameHeader.id, selectedID.c_str(), 6); // Patch memory with the selected (virtual) ID
-    }
-    // --- End: Restore selected (possibly duplicated) ID for in-memory patching ---
-
+	
 	//! Load main.dol or alternative dol into memory, start the game apploader and get game entrypoint
 	if (gameHeader.tid == 0)
 	{

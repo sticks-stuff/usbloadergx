@@ -42,6 +42,7 @@
 
 #include <map>
 #include <fstream>
+#include <iomanip>
 
 std::map<std::string, std::string> DuplicateIDMap;
 
@@ -492,19 +493,24 @@ void GameList::DuplicateGame(const struct discHdr *originalGame, const char *new
     if (!originalGame || !newGameID || strlen(newGameID) != 6)
         return;
 
+    // Copy original ID before any vector operations
+    char originalID[7] = {0};
+    memcpy(originalID, originalGame->id, 6);
+
     struct discHdr newGame = *originalGame;
+    memset(newGame.id, 0, sizeof(newGame.id));
     memcpy(newGame.id, newGameID, 6);
 
     FullGameList.push_back(newGame);
-    GamePartitionList.push_back(GamePartitionList[GetPartitionNumber(originalGame->id)]);
+    GamePartitionList.push_back(GamePartitionList[GetPartitionNumber((const u8*)originalID)]);
 
     // Track mapping: new ID -> original ID
-    DuplicateIDMap[std::string(newGameID, 6)] = std::string((const char*)originalGame->id, 6);
+    DuplicateIDMap[std::string(newGameID, 6)] = std::string(originalID, 6);
 
     SaveGameHeaderCache(FullGameList, GamePartitionList);
     FilterList();
 
-	SaveDuplicateIDMap();
+    SaveDuplicateIDMap();
 }
 
 // Call this after modifying DuplicateIDMap
