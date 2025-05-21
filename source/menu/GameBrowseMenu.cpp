@@ -348,15 +348,17 @@ GameBrowseMenu::GameBrowseMenu()
 	clockTime->SetPosition(thInt("275 - clock pos x"), thInt("335 - clock pos y"));
 	clockTime->SetFont(Resources::GetFile("clock.ttf"), Resources::GetFileSize("clock.ttf"));
 
-	btnDuplicateGame = Resources::GetImageData("classiccontroller.png");
-	btnDuplicateGameOver = Resources::GetImageData("classiccontrollerR.png");
+	btnDuplicateGame = Resources::GetImageData("duplicate.png");
+	btnDuplicateGameOver = Resources::GetImageData("duplicate_hover.png");
 
 	duplicateGameBtnTT = new GuiTooltip(tr("Duplicate Game with New ID"));
 	duplicateGameBtnImg = new GuiImage(btnDuplicateGame);
+	duplicateGameBtnImg->SetScale(0.8f);
 	duplicateGameBtnImgOver = new GuiImage(btnDuplicateGameOver);
+	duplicateGameBtnImgOver->SetScale(0.8f);
 	duplicateGameBtn = new GuiButton(duplicateGameBtnImg, duplicateGameBtnImgOver, ALIGN_LEFT, ALIGN_TOP,
-									thInt("275 - duplicate game btn pos x"), thInt("335 - duplicate game btn pos y"),
-									trigA, btnSoundOver, btnSoundClick2, 1, duplicateGameBtnTT, 15, -30, 1, 5);
+									thInt("160 - duplicate game btn pos x"), thInt("290 - duplicate game btn pos y"),
+									trigA, btnSoundOver, btnSoundClick2, 1, duplicateGameBtnTT, 65, -30, 1, 5);
 
 	ToolBar.push_back(favoriteBtn);
 	ToolBar.push_back(searchBtn);
@@ -726,6 +728,8 @@ void GameBrowseMenu::ReloadBrowser()
 			bgImg->SetImage(listBackground);
 		else
 			bgImg->SetImage(background);
+
+		Append(duplicateGameBtn);
 	}
 	else if (Settings.gameDisplay == GRID_MODE)
 	{
@@ -885,7 +889,6 @@ void GameBrowseMenu::ReloadBrowser()
 	{
 		Append(DownloadBtn);
 		Append(listCoverBtn);
-		Append(duplicateGameBtn);
 	}
 	else if (Settings.CoverAction == COVER_ACTION_INFO)
 		Append(listCoverBtn);
